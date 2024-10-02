@@ -4,6 +4,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import os, sys
+from tudatpy.io import save2txt
 import scipy as sc
 # Load required tudatpy modules
 from tudatpy import constants
@@ -28,7 +29,7 @@ B = 1
 C = 0
 
 simulation_start_epoch = 35.4 * constants.JULIAN_YEAR + A * 7.0 * constants.JULIAN_DAY + B * constants.JULIAN_DAY + C * constants.JULIAN_DAY / 24.0
-simulation_end_epoch = simulation_start_epoch + 30.0 * constants.JULIAN_DAY / 24.0 #344h from assignment
+simulation_end_epoch = simulation_start_epoch + 30.0 * constants.JULIAN_DAY / 24.0 
 
 # Create default body settings
 bodies_to_create = ['Ganymede', 'Jupiter', 'Sun', 'Saturn', 'Europa', 'Io', 'Callisto','Earth']
@@ -55,29 +56,16 @@ love_numbers: dict[tuple[int, int], dict[tuple[int, int], float]] = {}
 
 # Adding k Love numbers for forcing (2, 0) and LV(1,1) of 1%
 love_numbers[(2, 0)] = {
-    (0, 0): 3.99191e-24,
-    (1, -1): -9.01374e-29,
-    (1, 0): 0.00000e+00,
-    (1, 1): 1.66960e-28,
     (2, -2): 2.28408e-07,
-    (2, -1): 0.00000e+00,
     (2, 0): 3.07297e-01,
-    (2, 1): 0.00000e+00,
     (2, 2): 2.28408e-07,
     (3, -3): 2.27317e-10,
-    (3, -2): 0.00000e+00,
     (3, -1): 7.83920e-05,
-    (3, 0): 0.00000e+00,
     (3, 1): -7.83920e-05,
-    (3, 2): 0.00000e+00,
     (3, 3): -2.27317e-10,
-    (4, -3): 0.00000e+00,
     (4, -2): 3.25230e-08,
-    (4, -1): 0.00000e+00,
     (4, 0): -4.11388e-08,
-    (4, 1): 0.00000e+00,
     (4, 2): 3.25230e-08,
-    (4, 3): 0.00000e+00,
     (5, -3): 1.75113e-11,
     (5, -1): -2.43185e-11,
     (5, 1): 2.43185e-11,
@@ -87,8 +75,8 @@ love_numbers[(2, 0)] = {
 
 #print(love_numbers[(2, 0)][(2, 0)])
 gravity_field_variation_list = list()
+#gravity_field_variation_list.append( environment_setup.gravity_field_variation.solid_body_tide("Jupiter",0.0,2))
 gravity_field_variation_list.append( environment_setup.gravity_field_variation.mode_coupled_solid_body_tide(tide_raising_bodies, love_numbers)) 
-
 body_settings.get( "Ganymede" ).gravity_field_variation_settings = gravity_field_variation_list
 
 bodies = environment_setup.create_system_of_bodies(body_settings)
@@ -221,7 +209,7 @@ dependent_variables_to_save = [
     ]
 
 # Create numerical integrator settings.
-fixed_step_size = 10.0
+fixed_step_size = 100.0
 integrator_settings = propagation_setup.integrator.runge_kutta_4(
     fixed_step_size
 )
@@ -289,8 +277,7 @@ observation.add_viability_check_to_all(
 parameter_settings = estimation_setup.parameter.initial_states(propagator_settings, bodies)
 estimated_love_numbers: dict[tuple[int, int], list[tuple[int, int]]] = {}
 #estimated_love_numbers[(2, 0)] = [(2, 0)] #forcing D/O : response D/O
-estimated_love_numbers[(2, 0)] = [(0, 0),(1, -1),(1, 0),(1, 1),(2, -2),(2,-1),(2,0),(2,1),(2,2),(3,-3),(3,-2),(3,-1),(3,0),(3,1),(3,2),(3,3),(4,-3),(4,-2),(4,-1),
-                                  (4,0),(4,1),(4,2),(4,3),(5,-3),(5,-1),(5,1),(5,3)]
+estimated_love_numbers[(2, 0)] = [(2, -2),(2,0),(2,2),(3,-3),(3,-1),(3,1),(3,3),(4,-2),(4,0),(4,2),(5,-3),(5,-1),(5,1),(5,3)]
 
 parameter_settings.append(estimation_setup.parameter.mode_coupled_k_love_numbers("Ganymede",estimated_love_numbers,tide_raising_bodies))
 
@@ -309,7 +296,7 @@ simulated_observations = estimation.simulate_observations(
     [observation_simulation_settings],
     estimator.observation_simulators,
     bodies)
-
+print("observation vector size: ",simulated_observations.observation_vector_size)
 # Create input object for covariance analysis
 covariance_input = estimation.CovarianceAnalysisInput(simulated_observations)
 
@@ -334,5 +321,5 @@ print("Correlations", correlations, "\n")
 print("Covariance", covariance, "\n")
 print("Formal_errors", formal_errors, "\n")
 print("Partials", partials, "\n")
-
+# %%
 
