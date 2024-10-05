@@ -55,27 +55,11 @@ love_numbers: dict[tuple[int, int], dict[tuple[int, int], float]] = {}
 # love_numbers[(2, 0)] = {(2, 0): 0.32} #forcing D/O : response D/O : value of Love number
 
 # Adding k Love numbers for forcing (2, 0) and LV(1,1) of 1%
-love_numbers[(2, 0)] = {
-    (2, -2): 2.28408e-07,
-    (2, 0): 3.07297e-01,
-    (2, 2): 2.28408e-07,
-    (3, -3): 2.27317e-10,
-    (3, -1): 7.83920e-05,
-    (3, 1): -7.83920e-05,
-    (3, 3): -2.27317e-10,
-    (4, -2): 3.25230e-08,
-    (4, 0): -4.11388e-08,
-    (4, 2): 3.25230e-08,
-    (5, -3): 1.75113e-11,
-    (5, -1): -2.43185e-11,
-    (5, 1): 2.43185e-11,
-    (5, 3): -1.75113e-11
-}
-#forcing D/O : response D/O : value of Love number
+love_numbers[(2,0)] = {(2, 0): 3.07297e-01, (2, 2): 2.28408e-07} #forcing D/O : response D/O : value of Love number
 
 #print(love_numbers[(2, 0)][(2, 0)])
 gravity_field_variation_list = list()
-#gravity_field_variation_list.append( environment_setup.gravity_field_variation.solid_body_tide("Jupiter",0.0,2))
+gravity_field_variation_list.append( environment_setup.gravity_field_variation.solid_body_tide("Jupiter",0.0,2))
 gravity_field_variation_list.append( environment_setup.gravity_field_variation.mode_coupled_solid_body_tide(tide_raising_bodies, love_numbers)) 
 body_settings.get( "Ganymede" ).gravity_field_variation_settings = gravity_field_variation_list
 
@@ -204,9 +188,9 @@ dependent_variables_to_save = [
     ),
     propagation_setup.dependent_variable.spherical_harmonic_terms_acceleration_norm( "JUICE", "Jupiter", spherical_harmonic_terms_jupiter),
     propagation_setup.dependent_variable.relative_position("JUICE", "Sun"),
-    propagation_setup.dependent_variable.relative_position("JUICE", "Ganymede"),
-    propagation_setup.dependent_variable.total_gravity_field_variation_acceleration("JUICE","Ganymede")
-    ]
+    propagation_setup.dependent_variable.relative_position("JUICE", "Ganymede")]
+    #propagation_setup.dependent_variable.total_gravity_field_variation_acceleration("JUICE","Ganymede")
+    
 
 # Create numerical integrator settings.
 fixed_step_size = 100.0
@@ -276,13 +260,13 @@ observation.add_viability_check_to_all(
 # Setup parameters settings to propagate the state transition matrix
 parameter_settings = estimation_setup.parameter.initial_states(propagator_settings, bodies)
 estimated_love_numbers: dict[tuple[int, int], list[tuple[int, int]]] = {}
-#estimated_love_numbers[(2, 0)] = [(2, 0)] #forcing D/O : response D/O
-estimated_love_numbers[(2, 0)] = [(2, -2),(2,0),(2,2),(3,-3),(3,-1),(3,1),(3,3),(4,-2),(4,0),(4,2),(5,-3),(5,-1),(5,1),(5,3)]
+estimated_love_numbers[(2, 0)] = [(2, 0),(2,2)] #forcing D/O : response D/O
 
 parameter_settings.append(estimation_setup.parameter.mode_coupled_k_love_numbers("Ganymede",estimated_love_numbers,tide_raising_bodies))
 
 # Create the parameters that will be estimated
 parameters_to_estimate = estimation_setup.create_parameter_set(parameter_settings, bodies)
+print(estimation_setup.print_parameter_names(parameters_to_estimate))
     
 # Create the estimator
 estimator = numerical_simulation.Estimator(
